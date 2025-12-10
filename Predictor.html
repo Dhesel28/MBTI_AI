@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI Personality Predictor with Celebrity Matches</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1c1b37;
+        }
+
+        h1, h2, h3, h4, h5, h6, .heading-font {
+            font-family: 'Poppins', sans-serif;
+        }
+        .progress-bar {
+            background-color: #e0e0e0;
+        }
+        .progress-bar-inner {
+            transition: width 0.5s ease-in-out;
+        }
+        .celebrity-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .celebrity-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+        .celebrity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--category-color), transparent);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-8">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <img src="Header.png" alt="Ai Mbti Analyzer" class="mx-auto" style="max-width: 600px; width: 100%;">
+        <p class="text-gray-300 mt-4">Discover your personality type and find celebrities who share your MBTI</p>
+    </div>
+
+    <!-- 3 Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+
+        <!-- Column 1: Analyzer -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Analyze Your Personality</h2>
+
+            <label for="postInput" class="block text-sm font-medium text-gray-700 mb-3">
+                Share 2-3 of your recent posts:
+            </label>
+            <textarea
+                id="postInput"
+                rows="12"
+                class="w-full p-4 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                placeholder="Example:&#10;&#10;'Just spent the whole weekend coding. Love solving complex problems!'&#10;&#10;'Deep dive into quantum physics today...'&#10;&#10;'Finished that sci-fi novel series.'"
+            ></textarea>
+
+            <button id="analyzeButton" class="w-full mt-4 text-white font-semibold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 flex items-center justify-center" style="background-color: #1c1b37; --tw-ring-color: #1c1b37;" onmouseover="this.style.backgroundColor='#2d2b4a'" onmouseout="this.style.backgroundColor='#1c1b37'">
+                <span id="buttonText">Analyze</span>
+                <svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+
+            <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"></div>
+        </div>
+
+        <!-- Column 2: MBTI Type & Trait Analysis -->
+        <div id="resultsColumn" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Your MBTI Type</h2>
+
+            <!-- MBTI Type -->
+            <div class="text-center mb-6 p-6 rounded-xl" style="background-color: #f8f9fa;">
+                <p class="text-5xl font-extrabold mb-3" id="finalType" style="color: #1c1b37;">?</p>
+                <p class="text-gray-700 text-sm" id="summaryText">Enter your posts and click Analyze to discover your personality type</p>
+            </div>
+
+            <!-- Trait Analysis -->
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Trait Breakdown</h3>
+            <div class="space-y-3">
+                    <!-- Mind -->
+                    <div class="p-4 rounded-lg bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-bold text-gray-800" id="mindTitle">Mind (I/E)</span>
+                            <span class="text-sm font-bold text-indigo-600" id="mindConfidence"></span>
+                        </div>
+                        <div class="progress-bar w-full rounded-full h-2 overflow-hidden mb-2">
+                            <div id="mindBar" class="progress-bar-inner h-2 rounded-full bg-indigo-500" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600" id="mindReasoning"></p>
+                    </div>
+
+                    <!-- Energy -->
+                    <div class="p-4 rounded-lg bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-bold text-gray-800" id="energyTitle">Energy (N/S)</span>
+                            <span class="text-sm font-bold text-green-600" id="energyConfidence"></span>
+                        </div>
+                        <div class="progress-bar w-full rounded-full h-2 overflow-hidden mb-2">
+                            <div id="energyBar" class="progress-bar-inner h-2 rounded-full bg-green-500" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600" id="energyReasoning"></p>
+                    </div>
+
+                    <!-- Nature -->
+                    <div class="p-4 rounded-lg bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-bold text-gray-800" id="natureTitle">Nature (T/F)</span>
+                            <span class="text-sm font-bold text-blue-600" id="natureConfidence"></span>
+                        </div>
+                        <div class="progress-bar w-full rounded-full h-2 overflow-hidden mb-2">
+                            <div id="natureBar" class="progress-bar-inner h-2 rounded-full bg-blue-500" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600" id="natureReasoning"></p>
+                    </div>
+
+                    <!-- Tactics -->
+                    <div class="p-4 rounded-lg bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-bold text-gray-800" id="tacticsTitle">Tactics (P/J)</span>
+                            <span class="text-sm font-bold text-purple-600" id="tacticsConfidence"></span>
+                        </div>
+                        <div class="progress-bar w-full rounded-full h-2 overflow-hidden mb-2">
+                            <div id="tacticsBar" class="progress-bar-inner h-2 rounded-full bg-purple-500" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600" id="tacticsReasoning"></p>
+                    </div>
+                </div>
+        </div>
+
+        <!-- Column 3: Famous Personalities -->
+        <div id="celebrityColumn" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 overflow-y-auto" style="max-height: 800px;">
+            <h2 class="text-xl font-bold text-gray-900 mb-2">Famous Personalities</h2>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-6">Who share your type</p>
+
+            <div id="celebrityGrid" class="space-y-4">
+                <div class="text-center py-12 px-4">
+                    <p class="text-gray-400 text-sm">Celebrity matches will appear here after analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let celebrityData = [];
+        const apiKey = "YOUR_GEMINI_API_KEY_HERE"; // Replace with your Gemini API key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        // UI elements
+        const analyzeButton = document.getElementById('analyzeButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const postInput = document.getElementById('postInput');
+        const resultsArea = document.getElementById('resultsArea');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // System prompt for MBTI analysis
+        const systemPrompt = `You are an expert personality analyst specializing in the Myers-Briggs Type Indicator (MBTI) framework. Your task is to analyze a few social media posts provided by a user and classify them across the four dichotomies: Mind (I/E), Energy (N/S), Nature (T/F), and Tactics (J/P).
+
+You will be given 2-3 posts. Based ONLY on the text in these posts, you will respond with a JSON object. Do not include any other text or markdown formatting.
+
+The JSON object must follow this exact structure:
+{
+  "type": "Your 4-letter predicted type (e.g., INTP)",
+  "overall_summary": "Your brief, 1-2 sentence summary of why you chose this type.",
+  "scores": {
+    "I_E": {
+      "prediction": "I or E",
+      "confidence": <number 0-100>,
+      "reasoning": "Your brief 1-sentence reason for this choice."
+    },
+    "N_S": {
+      "prediction": "N or S",
+      "confidence": <number 0-100>,
+      "reasoning": "Your brief 1-sentence reason for this choice."
+    },
+    "T_F": {
+      "prediction": "T or F",
+      "confidence": <number 0-100>,
+      "reasoning": "Your brief 1-sentence reason for this choice."
+    },
+    "P_J": {
+      "prediction": "P or J",
+      "confidence": <number 0-100>,
+      "reasoning": "Your brief 1-sentence reason for this choice."
+    }
+  }
+}
+Analyze the following posts carefully. Look for clues in language, topics, and sentiment. Do not make assumptions beyond what is written.`;
+
+        // Load celebrity CSV data on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadCelebrityData();
+        });
+
+        function loadCelebrityData() {
+            Papa.parse('mbti_celebrities.csv', {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    celebrityData = results.data.filter(row =>
+                        row.name && row.category && row.four_letter
+                    );
+                    console.log(`Loaded ${celebrityData.length} celebrities`);
+                },
+                error: function(error) {
+                    console.error('Error loading celebrity data:', error);
+                }
+            });
+        }
+
+        // Event Listeners
+        analyzeButton.addEventListener('click', handleAnalyze);
+
+        async function handleAnalyze() {
+            const userText = postInput.value;
+
+            if (userText.trim().length < 20) {
+                showError("Please enter at least 20 characters of text to analyze.");
+                return;
+            }
+
+            setLoadingState(true);
+
+            try {
+                const response = await callGeminiAPI(userText);
+                displayResults(response);
+            } catch (error) {
+                console.error("Error:", error);
+                showError("An error occurred. The API might be busy or the request failed. Please try again.");
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function callGeminiAPI(userText) {
+            const payload = {
+                contents: [{
+                    parts: [{ text: systemPrompt + "\n\nPosts:\n" + userText }]
+                }],
+                generationConfig: {
+                    temperature: 0.7
+                }
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("API Error:", errorText);
+                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log("API Response:", result);
+
+            if (result.candidates && result.candidates.length > 0) {
+                const jsonText = result.candidates[0].content.parts[0].text;
+                console.log("Raw JSON:", jsonText);
+
+                // Clean up the response - remove markdown code blocks if present
+                let cleanJson = jsonText.trim();
+                if (cleanJson.startsWith('```json')) {
+                    cleanJson = cleanJson.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+                } else if (cleanJson.startsWith('```')) {
+                    cleanJson = cleanJson.replace(/```\n?/g, '');
+                }
+
+                return JSON.parse(cleanJson);
+            } else {
+                throw new Error("Invalid response structure from API.");
+            }
+        }
+
+        function displayResults(data) {
+            // Main result
+            document.getElementById('finalType').textContent = data.type;
+            document.getElementById('summaryText').textContent = data.overall_summary;
+
+            // Mind (I/E)
+            const mind = data.scores.I_E;
+            const mindTitle = mind.prediction === 'I' ? 'Introversion (I)' : 'Extroversion (E)';
+            updateTraitUI('mind', mindTitle, mind.confidence, mind.reasoning, 'text-indigo-600', 'bg-indigo-500');
+
+            // Energy (N/S)
+            const energy = data.scores.N_S;
+            const energyTitle = energy.prediction === 'N' ? 'Intuition (N)' : 'Sensing (S)';
+            updateTraitUI('energy', energyTitle, energy.confidence, energy.reasoning, 'text-green-600', 'bg-green-500');
+
+            // Nature (T/F)
+            const nature = data.scores.T_F;
+            const natureTitle = nature.prediction === 'T' ? 'Thinking (T)' : 'Feeling (F)';
+            updateTraitUI('nature', natureTitle, nature.confidence, nature.reasoning, 'text-blue-600', 'bg-blue-500');
+
+            // Tactics (P/J)
+            const tactics = data.scores.P_J;
+            const tacticsTitle = tactics.prediction === 'P' ? 'Perceiving (P)' : 'Judging (J)';
+            updateTraitUI('tactics', tacticsTitle, tactics.confidence, tactics.reasoning, 'text-purple-600', 'bg-purple-500');
+
+            // Find and display matching celebrities
+            displayCelebrityMatches(data.type);
+
+            // Columns are always visible, no need to show/hide
+        }
+
+        function updateTraitUI(id, title, confidence, reasoning, colorClass, bgClass) {
+            document.getElementById(`${id}Title`).textContent = title;
+            document.getElementById(`${id}Confidence`).textContent = `${confidence}%`;
+            document.getElementById(`${id}Reasoning`).textContent = reasoning;
+
+            const bar = document.getElementById(`${id}Bar`);
+            bar.style.width = `${confidence}%`;
+
+            const confidenceEl = document.getElementById(`${id}Confidence`);
+            confidenceEl.className = 'text-sm font-bold';
+            confidenceEl.classList.add(colorClass);
+
+            const barEl = document.getElementById(`${id}Bar`);
+            barEl.className = 'progress-bar-inner h-2 rounded-full';
+            barEl.classList.add(bgClass);
+        }
+
+        function displayCelebrityMatches(mbtiType) {
+            const celebrityGrid = document.getElementById('celebrityGrid');
+            celebrityGrid.innerHTML = '';
+
+            // Filter celebrities by MBTI type
+            const matchingCelebs = celebrityData.filter(celeb =>
+                celeb.four_letter === mbtiType
+            );
+
+            console.log(`Found ${matchingCelebs.length} celebrities with type ${mbtiType}`);
+
+            // Get unique categories
+            const categories = [...new Set(matchingCelebs.map(c => c.category))]
+                .filter(cat => cat && !cat.match(/^\d+$/)); // Filter out numeric categories
+
+            // Get one celebrity from each category
+            const selectedCelebs = categories.slice(0, 9).map(category => {
+                const celebsInCategory = matchingCelebs.filter(c => c.category === category);
+                // Get random celebrity from category
+                return celebsInCategory[Math.floor(Math.random() * celebsInCategory.length)];
+            });
+
+            if (selectedCelebs.length === 0) {
+                celebrityGrid.innerHTML = '<p class="text-gray-600 col-span-full text-center">No celebrity matches found for this type.</p>';
+                return;
+            }
+
+            // Create celebrity cards
+            selectedCelebs.forEach(celeb => {
+                const card = document.createElement('div');
+                card.className = 'celebrity-card p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all';
+
+                const categoryColors = {
+                    'Sports': { bg: '#fee2e2', text: '#991b1b', accent: '#dc2626' },
+                    'Musician': { bg: '#f3e8ff', text: '#6b21a8', accent: '#9333ea' },
+                    'Pop Culture': { bg: '#fce7f3', text: '#9f1239', accent: '#ec4899' },
+                    'The Arts': { bg: '#dbeafe', text: '#1e40af', accent: '#3b82f6' },
+                    'Science': { bg: '#d1fae5', text: '#065f46', accent: '#10b981' },
+                    'Political': { bg: '#e0e7ff', text: '#3730a3', accent: '#6366f1' },
+                    'Historical': { bg: '#fef3c7', text: '#92400e', accent: '#f59e0b' },
+                    'Business': { bg: '#fed7aa', text: '#9a3412', accent: '#f97316' },
+                    'Internet': { bg: '#cffafe', text: '#155e75', accent: '#06b6d4' },
+                    'Kpop': { bg: '#fae8ff', text: '#86198f', accent: '#d946ef' },
+                    'Religion': { bg: '#ccfbf1', text: '#134e4a', accent: '#14b8a6' },
+                    'Noteworthy': { bg: '#fef9c3', text: '#854d0e', accent: '#eab308' }
+                };
+
+                const colors = categoryColors[celeb.category] || { bg: '#f3f4f6', text: '#374151', accent: '#6b7280' };
+
+                card.style.setProperty('--category-color', colors.accent);
+
+                card.innerHTML = `
+                    <div class="mb-2">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+                              style="background-color: ${colors.bg}; color: ${colors.text};">
+                            ${celeb.category}
+                        </span>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-900 mb-1 leading-tight">${celeb.name}</h4>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-gray-500">Type</span>
+                        <span class="text-sm font-bold" style="color: ${colors.accent};">${mbtiType}</span>
+                    </div>
+                `;
+
+                celebrityGrid.appendChild(card);
+            });
+        }
+
+        function setLoadingState(isLoading) {
+            if (isLoading) {
+                buttonText.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                analyzeButton.disabled = true;
+                errorMessage.classList.add('hidden');
+            } else {
+                buttonText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                analyzeButton.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
