@@ -3,17 +3,12 @@
 ## Overview
 This project uses transformer-based deep learning models to predict MBTI personality types from social media posts. It features a comprehensive model comparison framework, an elegant 3-column web interface with celebrity matching, and dual-mode prediction capabilities (batch training + real-time inference).
 
-## Recent Updates
+## Features
 
-### Web Interface Enhancements
-- **3-Column Responsive Layout**: Redesigned `Predictor.html` with elegant dark theme (#1c1b37)
-- **Celebrity Matching System**: Integration with 50,879+ celebrity MBTI database
-- **Custom Branding**: New artistic header with "AI MBTI Analyzer" design
+- **3-Column Responsive Layout**: Elegant dark theme (#1c1b37) web interface
+- **Celebrity Matching System**: Integration with 50,879+ celebrity MBTI database across 6 categories (Pop Culture, Internet, Sports, Musicians, The Arts, Historical)
+- **Custom Branding**: Artistic header with "AI MBTI Analyzer" design
 - **Interactive UI**: Animated progress bars, hover effects, and category-colored celebrity cards
-
-### New Features
-- **Celebrity Database**: Added `mbti_celebrities.csv` with 50K+ celebrities across 6 categories (Pop Culture, Internet, Sports, Musicians, The Arts, Historical)
-- **Quick Demo Mode**: New `quick_demo.py` for rapid testing (1 model, 1 trait, 1 epoch)
 - **Presentation Materials**: Comprehensive `presentation.md` with project documentation
 
 ## High-Level Workflow
@@ -86,7 +81,6 @@ Celebrity Matching (50K+ database)
 |------|---------|---------|
 | `BERTModels.py` | Training pipeline with 4 model variants | ~309 lines |
 | `Predictor.html` | 3-column web UI with celebrity matching | ~500 lines |
-| `quick_demo.py` | Quick demo (1 model, 1 trait, 1 epoch) | ~289 lines |
 | `config.py` | Hyperparameters and model definitions | ~232 lines |
 | `presentation.md` | Project presentation slides | ~550 lines |
 | `mbti_1.csv` | Training dataset (8,675 users) | ~60MB |
@@ -106,9 +100,6 @@ Celebrity Matching (50K+ database)
 ```bash
 # Full training (all 4 models × 4 traits)
 python BERTModels.py
-
-# Quick demo (1 model, 1 trait, ~30-45 min on CPU)
-python quick_demo.py
 ```
 
 ### Real-Time Prediction
